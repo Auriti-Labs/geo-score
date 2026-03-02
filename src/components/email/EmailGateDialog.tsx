@@ -25,6 +25,7 @@ export function EmailGateDialog({
   auditId,
 }: EmailGateDialogProps) {
   const [email, setEmail] = useState("");
+  const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -79,7 +80,25 @@ export function EmailGateDialog({
             required
             aria-label="Indirizzo email"
           />
-          <Button type="submit" disabled={loading || !email.trim()}>
+          <label className="flex items-start gap-2 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="mt-0.5 rounded border-input"
+              required
+            />
+            <span>
+              Acconsento al trattamento dei dati per ricevere il report.{" "}
+              <a href="/privacy" className="underline hover:text-foreground">
+                Privacy Policy
+              </a>
+            </span>
+          </label>
+          <Button
+            type="submit"
+            disabled={loading || !email.trim() || !consent}
+          >
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -89,9 +108,6 @@ export function EmailGateDialog({
               "Invia report"
             )}
           </Button>
-          <p className="text-xs text-muted-foreground">
-            La tua email viene usata solo per inviarti il report. Niente spam.
-          </p>
         </form>
       </DialogContent>
     </Dialog>
