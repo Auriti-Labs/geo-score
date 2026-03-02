@@ -26,7 +26,7 @@ export function HowItWorks() {
   return (
     <section className="px-4 py-16" id="come-funziona">
       <div className="mx-auto max-w-5xl">
-        <h2 className="mb-10 text-center text-3xl font-bold">
+        <h2 className="mb-10 text-center font-heading text-3xl font-bold">
           Come funziona
         </h2>
         <div className="grid gap-6 md:grid-cols-3">

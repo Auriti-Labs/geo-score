@@ -24,7 +24,7 @@ export function AuditClient({ audit }: AuditClientProps) {
       <div className="mb-8 flex flex-col items-center gap-4 text-center">
         <ScoreGauge score={audit.score} band={audit.band as ScoreBand} />
         <ScoreBandBadge band={audit.band as ScoreBand} />
-        <h1 className="text-xl font-semibold">{truncateUrl(audit.url, 60)}</h1>
+        <h1 className="font-heading text-xl font-semibold">{truncateUrl(audit.url, 60)}</h1>
         <p className="text-sm text-muted-foreground">
           Analizzato il {formatDate(audit.created_at)}
         </p>

@@ -1,10 +1,11 @@
 import { AuditForm } from "./AuditForm";
+import { ScanCounter } from "./ScanCounter";
 
 export function HeroSection() {
   return (
     <section className="flex flex-col items-center gap-8 px-4 py-20 text-center md:py-32">
       <div className="flex flex-col items-center gap-4">
-        <h1 className="max-w-3xl text-4xl font-bold tracking-tight md:text-6xl">
+        <h1 className="max-w-3xl font-heading text-4xl font-bold tracking-tight md:text-6xl">
           Il tuo sito è visibile per{" "}
           <span className="text-primary">gli AI search engine?</span>
         </h1>
@@ -15,9 +16,12 @@ export function HeroSection() {
         </p>
       </div>
       <AuditForm />
-      <p className="text-sm text-muted-foreground">
-        Gratuito. Nessuna registrazione richiesta.
-      </p>
+      <div className="flex flex-col items-center gap-2">
+        <p className="text-sm text-muted-foreground">
+          Gratuito. Nessuna registrazione richiesta.
+        </p>
+        <ScanCounter />
+      </div>
     </section>
   );
 }

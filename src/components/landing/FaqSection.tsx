@@ -55,7 +55,7 @@ export function FaqSection() {
         dangerouslySetInnerHTML={{ __html: faqJsonLd }}
       />
       <div className="mx-auto max-w-2xl">
-        <h2 className="mb-8 text-center text-3xl font-bold">
+        <h2 className="mb-8 text-center font-heading text-3xl font-bold">
           Domande frequenti
         </h2>
         <Accordion type="single" collapsible className="w-full">
