@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { AuditRequestSchema } from "@/types/api";
-import { createServiceClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { runAudit } from "@/lib/api-client";
 import { normalizeUrl } from "@/lib/utils";
+import { checkRateLimit, hashIp } from "@/lib/rate-limit";
 
 // Dedup: se esiste un audit < 5 minuti per lo stesso URL, riutilizzalo
 const DEDUP_MINUTES = 5;
@@ -23,6 +24,32 @@ export async function POST(request: NextRequest) {
     const { url } = parsed.data;
     const urlNormalized = normalizeUrl(url);
     const supabase = createServiceClient();
+
+    // Recupera user_id se autenticato (opzionale)
+    let userId: string | null = null;
+    try {
+      const authClient = await createClient();
+      const { data: { user } } = await authClient.auth.getUser();
+      userId = user?.id ?? null;
+    } catch {
+      // Utente anonimo — ok
+    }
+
+    // Rate limiting per piano
+    const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+    const ipHash = clientIp ? hashIp(clientIp) : undefined;
+    const rateLimit = await checkRateLimit(userId, ipHash);
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: "Limite giornaliero raggiunto. Passa a Pro per più analisi.",
+          used: rateLimit.used,
+          limit: rateLimit.limit,
+        },
+        { status: 429 },
+      );
+    }
 
     // Dedup: cerca audit recente per lo stesso URL
     const cutoff = new Date(
@@ -62,6 +89,7 @@ export async function POST(request: NextRequest) {
         recommendations: result.recommendations,
         http_status: result.http_status,
         page_size: result.page_size,
+        ...(userId && { user_id: userId }),
       })
       .select("id, url, score, band")
       .single();
@@ -74,11 +102,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Traccia evento
+    // Traccia evento (ip_hash per rate limiting anonimi)
     await supabase.from("usage_events").insert({
       event_type: "audit_completed",
       audit_id: audit.id,
       metadata: { url: result.url, score: result.score },
+      ...(ipHash && { ip_hash: ipHash }),
     });
 
     return NextResponse.json({
