@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import type { AuditRow } from "@/types/database";
 import { SCORE_BANDS } from "@/lib/constants";
 import { AuditClient } from "./audit-client";
@@ -11,7 +11,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
-  const supabase = await createClient();
+  const supabase = createServiceClient();
   const { data } = await supabase
     .from("audits")
     .select("url, score, band")
@@ -41,7 +41,7 @@ export default async function AuditPage({ params }: PageProps) {
     notFound();
   }
 
-  const supabase = await createClient();
+  const supabase = createServiceClient();
   const { data: audit } = await supabase
     .from("audits")
     .select("*")
