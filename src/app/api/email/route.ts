@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { EmailRequestSchema } from "@/types/api";
 import { createServiceClient } from "@/lib/supabase/server";
+import { sendReportEmail } from "@/lib/resend";
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,8 +50,16 @@ export async function POST(request: NextRequest) {
       metadata: { email_hash: email.split("@")[1] },
     });
 
-    // TODO: integrazione Resend per invio email con link al report PDF
-    // Per MVP, il report viene scaricato direttamente dopo aver inserito l'email
+    // Invio email con link al report PDF via Resend
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://geoscore.dev";
+    const reportUrl = `${siteUrl}/api/report/${audit_id}`;
+
+    await sendReportEmail({
+      to: email,
+      url: audit.url,
+      score: audit.score,
+      reportUrl,
+    });
 
     return NextResponse.json({
       success: true,
