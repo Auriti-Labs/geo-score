@@ -1,0 +1,19 @@
+# GEO Score
+
+> Misura la visibilità AI del tuo sito web. Punteggio 0-100 su 5 categorie con raccomandazioni actionable.
+
+GEO Score analizza quanto un sito web è ottimizzato per essere trovato e citato dagli AI search engine come ChatGPT, Perplexity, Claude e Gemini. Basato sulla ricerca Princeton KDD 2024 sulla Generative Engine Optimization.
+
+## Funzionalità
+
+- Analisi robots.txt per accesso 14 AI bot
+- Verifica presenza e struttura llms.txt
+- Validazione Schema JSON-LD (WebSite, FAQPage, WebApplication)
+- Controllo meta tags (title, description, canonical, Open Graph)
+- Valutazione qualità contenuto per citazioni AI
+
+## Link
+
+- [Homepage](https://geoscore.dev)
+- [GitHub](https://github.com/Auriti-Labs/geo-score)
+- [Ricerca GEO Princeton](https://arxiv.org/abs/2311.09735)
