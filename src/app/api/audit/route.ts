@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     if (insertError || !audit) {
       console.error("Errore salvataggio audit:", insertError);
       return NextResponse.json(
-        { error: "Errore nel salvataggio dei risultati", details: insertError?.message, code: insertError?.code },
+        { error: "Errore nel salvataggio dei risultati" },
         { status: 500 },
       );
     }
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: "Errore durante l'analisi. Riprova più tardi.", details: error instanceof Error ? error.message : String(error) },
+      { error: "Errore durante l'analisi. Riprova più tardi." },
       { status: 502 },
     );
   }
