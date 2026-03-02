@@ -1,6 +1,9 @@
-// Helper per il middleware Next.js — refresh sessione Supabase (minimal per MVP)
+// Helper per il middleware Next.js — refresh sessione + protezione route
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+
+// Route che richiedono autenticazione
+const PROTECTED_ROUTES = ["/dashboard"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -27,7 +30,20 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Refresh sessione se presente
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Protezione route autenticate
+  const isProtected = PROTECTED_ROUTES.some((route) =>
+    request.nextUrl.pathname.startsWith(route),
+  );
+
+  if (isProtected && !user) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", request.nextUrl.pathname);
+    return NextResponse.redirect(loginUrl);
+  }
 
   return supabaseResponse;
 }
