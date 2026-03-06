@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod/v4";
+import { getClientIp, hashIp, checkInMemoryRateLimit } from "@/lib/rate-limit";
 
 const ContactSchema = z.object({
   name: z.string().min(1, "Nome obbligatorio").max(100),
@@ -7,8 +8,24 @@ const ContactSchema = z.object({
   message: z.string().min(10, "Messaggio troppo breve").max(2000),
 });
 
-export async function POST(request: Request) {
+// Limite: 3 richieste per IP ogni 15 minuti
+const CONTACT_RATE_LIMIT = 3;
+const CONTACT_RATE_WINDOW = 15 * 60 * 1000;
+
+export async function POST(request: NextRequest) {
   try {
+    // Rate limiting per IP
+    const clientIp = getClientIp(request);
+    if (clientIp) {
+      const ipHash = hashIp(clientIp);
+      if (!checkInMemoryRateLimit(`contact:${ipHash}`, CONTACT_RATE_LIMIT, CONTACT_RATE_WINDOW)) {
+        return NextResponse.json(
+          { error: "Troppe richieste. Riprova tra qualche minuto." },
+          { status: 429, headers: { "Retry-After": "900" } },
+        );
+      }
+    }
+
     const body = await request.json();
     const parsed = ContactSchema.safeParse(body);
 

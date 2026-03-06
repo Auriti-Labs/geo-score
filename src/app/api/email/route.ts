@@ -2,9 +2,26 @@ import { NextResponse, type NextRequest } from "next/server";
 import { EmailRequestSchema } from "@/types/api";
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendReportEmail } from "@/lib/resend";
+import { getClientIp, hashIp, checkInMemoryRateLimit } from "@/lib/rate-limit";
+
+// Limite: 5 richieste per IP ogni 15 minuti
+const EMAIL_RATE_LIMIT = 5;
+const EMAIL_RATE_WINDOW = 15 * 60 * 1000;
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting per IP
+    const clientIp = getClientIp(request);
+    if (clientIp) {
+      const ipHash = hashIp(clientIp);
+      if (!checkInMemoryRateLimit(`email:${ipHash}`, EMAIL_RATE_LIMIT, EMAIL_RATE_WINDOW)) {
+        return NextResponse.json(
+          { error: "Troppe richieste. Riprova tra qualche minuto." },
+          { status: 429, headers: { "Retry-After": "900" } },
+        );
+      }
+    }
+
     const body = await request.json();
 
     // Validazione

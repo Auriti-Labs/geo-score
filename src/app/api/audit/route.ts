@@ -3,7 +3,7 @@ import { AuditRequestSchema } from "@/types/api";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { runAudit, ApiError } from "@/lib/api-client";
 import { normalizeUrl } from "@/lib/utils";
-import { checkRateLimit, hashIp } from "@/lib/rate-limit";
+import { checkRateLimit, hashIp, getClientIp } from "@/lib/rate-limit";
 
 // Dedup: se esiste un audit < 5 minuti per lo stesso URL, riutilizzalo
 const DEDUP_MINUTES = 5;
@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
       // Utente anonimo — ok
     }
 
-    // Rate limiting per piano
-    const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+    // Rate limiting per piano — IP estratto in modo sicuro
+    const clientIp = getClientIp(request);
     const ipHash = clientIp ? hashIp(clientIp) : undefined;
     const rateLimit = await checkRateLimit(userId, ipHash);
 

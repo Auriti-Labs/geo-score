@@ -2,6 +2,7 @@
 // Usato SOLO lato server (API routes) — mai dal browser
 
 import type { AuditResult } from "@/types/audit";
+import { AuditResultSchema } from "@/types/api";
 
 const TIMEOUT_MS = parseInt(process.env.API_TIMEOUT_MS ?? "30000", 10);
 const MAX_RETRIES = 2;
@@ -52,8 +53,16 @@ export async function runAudit(url: string): Promise<AuditResult> {
         );
       }
 
-      const data = (await response.json()) as AuditResult;
-      return data;
+      const json = await response.json();
+
+      // Validazione risposta backend con Zod
+      const parsed = AuditResultSchema.safeParse(json);
+      if (!parsed.success) {
+        console.error("Risposta backend non valida:", parsed.error.issues);
+        throw new ApiError("Risposta non valida dal servizio di analisi", 502);
+      }
+
+      return parsed.data as AuditResult;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
 

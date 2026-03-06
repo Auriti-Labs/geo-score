@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import type { NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { PLAN_LIMITS } from "@/lib/stripe";
 import type { UserPlan } from "@/types/database";
@@ -108,4 +109,77 @@ export async function checkRateLimit(
 export function hashIp(ip: string): string {
   const salt = process.env.IP_HASH_SALT ?? "geo-score-default-salt";
   return `ip_${crypto.createHash("sha256").update(`${salt}:${ip}`).digest("hex").slice(0, 16)}`;
+}
+
+/**
+ * Estrae l'IP client dalla request in modo sicuro.
+ * Priorità: request.ip (Vercel) → x-real-ip → ultimo IP di x-forwarded-for.
+ * L'ultimo IP in x-forwarded-for è quello aggiunto dal reverse proxy (più affidabile).
+ */
+export function getClientIp(request: NextRequest): string | undefined {
+  // x-real-ip è impostato da molti reverse proxy (Nginx, Railway)
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
+
+  // x-forwarded-for: l'ultimo valore è quello del proxy più vicino (più affidabile)
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) {
+    const ips = forwarded.split(",").map((ip) => ip.trim()).filter(Boolean);
+    // Ultimo IP = aggiunto dal reverse proxy della piattaforma
+    return ips[ips.length - 1];
+  }
+
+  return undefined;
+}
+
+// --- Rate limiter in-memory per endpoint a basso traffico (email, contact) ---
+
+interface RateBucket {
+  count: number;
+  resetAt: number;
+}
+
+const ipBuckets = new Map<string, RateBucket>();
+
+// Pulizia periodica dei bucket scaduti (ogni 5 minuti)
+const CLEANUP_INTERVAL = 5 * 60 * 1000;
+let lastCleanup = Date.now();
+
+function cleanupBuckets() {
+  const now = Date.now();
+  if (now - lastCleanup < CLEANUP_INTERVAL) return;
+  lastCleanup = now;
+  for (const [key, bucket] of ipBuckets) {
+    if (now > bucket.resetAt) ipBuckets.delete(key);
+  }
+}
+
+/**
+ * Rate limiter in-memory per endpoint senza autenticazione.
+ * @param key - Chiave univoca (es. "email:<ipHash>")
+ * @param maxRequests - Numero massimo di richieste nella finestra
+ * @param windowMs - Durata della finestra in millisecondi
+ * @returns true se la richiesta è consentita
+ */
+export function checkInMemoryRateLimit(
+  key: string,
+  maxRequests: number,
+  windowMs: number,
+): boolean {
+  cleanupBuckets();
+
+  const now = Date.now();
+  const bucket = ipBuckets.get(key);
+
+  if (!bucket || now > bucket.resetAt) {
+    ipBuckets.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+
+  if (bucket.count >= maxRequests) {
+    return false;
+  }
+
+  bucket.count++;
+  return true;
 }
