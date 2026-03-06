@@ -4,13 +4,37 @@ import type { AuditRow } from "@/types/database";
 import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
 import { ReportPdf } from "@/lib/pdf/report-template";
+import { getClientIp, hashIp, checkInMemoryRateLimit } from "@/lib/rate-limit";
+
+// Limite: 10 download per IP ogni 15 minuti
+const REPORT_RATE_LIMIT = 10;
+const REPORT_RATE_WINDOW = 15 * 60 * 1000;
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    // Rate limiting per IP
+    const clientIp = getClientIp(request);
+    if (clientIp) {
+      const ipHash = hashIp(clientIp);
+      if (!checkInMemoryRateLimit(`report:${ipHash}`, REPORT_RATE_LIMIT, REPORT_RATE_WINDOW)) {
+        return NextResponse.json(
+          { error: "Troppe richieste. Riprova tra qualche minuto." },
+          { status: 429, headers: { "Retry-After": "900" } },
+        );
+      }
+    }
+
     const { id } = await params;
+
+    // Validazione UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      return NextResponse.json({ error: "ID non valido" }, { status: 400 });
+    }
+
     const supabase = createServiceClient();
 
     const { data: audit } = await supabase

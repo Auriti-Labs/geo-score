@@ -30,6 +30,25 @@ export async function POST(request: Request) {
 
   const supabase = createServiceClient();
 
+  // Idempotenza: controlla se l'evento è già stato processato
+  const { data: existingEvent } = await supabase
+    .from("usage_events")
+    .select("id")
+    .eq("event_type", "stripe_webhook")
+    .eq("metadata->>stripe_event_id", event.id)
+    .maybeSingle();
+
+  if (existingEvent) {
+    // Evento già processato — risposta OK per evitare retry
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+
+  // Registra evento per idempotenza
+  await supabase.from("usage_events").insert({
+    event_type: "stripe_webhook",
+    metadata: { stripe_event_id: event.id, type: event.type },
+  });
+
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
@@ -145,6 +164,30 @@ export async function POST(request: Request) {
               { status: 500 },
             );
           }
+        }
+      }
+      break;
+    }
+
+    case "invoice.payment_failed": {
+      const invoice = event.data.object as Stripe.Invoice;
+      // Nella API Stripe clover+, subscription è sotto parent.subscription_details
+      const subDetail = invoice.parent?.subscription_details?.subscription;
+      const subscriptionId = typeof subDetail === "string" ? subDetail : subDetail?.id ?? null;
+
+      if (subscriptionId) {
+        // Marca l'abbonamento come past_due
+        const { error: pastDueError } = await supabase
+          .from("subscriptions")
+          .update({ status: "past_due" })
+          .eq("id", subscriptionId);
+
+        if (pastDueError) {
+          console.error("Errore update past_due:", pastDueError);
+          return NextResponse.json(
+            { error: "Errore aggiornamento stato pagamento" },
+            { status: 500 },
+          );
         }
       }
       break;
