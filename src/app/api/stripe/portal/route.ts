@@ -35,8 +35,9 @@ export async function GET() {
     return NextResponse.redirect(session.url);
   } catch (error) {
     console.error("Errore Stripe portal:", error);
+    // Redirect con query param per mostrare errore lato client
     return NextResponse.redirect(
-      new URL("/dashboard/settings", process.env.NEXT_PUBLIC_SITE_URL ?? "https://geoscore.dev"),
+      new URL("/dashboard/settings?error=portal", process.env.NEXT_PUBLIC_SITE_URL ?? "https://geoscore.dev"),
     );
   }
 }

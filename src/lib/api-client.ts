@@ -6,7 +6,7 @@ import type { AuditResult } from "@/types/audit";
 const TIMEOUT_MS = parseInt(process.env.API_TIMEOUT_MS ?? "30000", 10);
 const MAX_RETRIES = 2;
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,

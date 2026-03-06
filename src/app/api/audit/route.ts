@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { AuditRequestSchema } from "@/types/api";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { runAudit } from "@/lib/api-client";
+import { runAudit, ApiError } from "@/lib/api-client";
 import { normalizeUrl } from "@/lib/utils";
 import { checkRateLimit, hashIp } from "@/lib/rate-limit";
 
@@ -41,13 +41,24 @@ export async function POST(request: NextRequest) {
     const rateLimit = await checkRateLimit(userId, ipHash);
 
     if (!rateLimit.allowed) {
+      const resetTime = new Date();
+      resetTime.setUTCHours(24, 0, 0, 0);
       return NextResponse.json(
         {
           error: "Limite giornaliero raggiunto. Passa a Pro per più analisi.",
           used: rateLimit.used,
           limit: rateLimit.limit,
         },
-        { status: 429 },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((resetTime.getTime() - Date.now()) / 1000)),
+            "X-RateLimit-Limit": String(rateLimit.limit ?? 0),
+            "X-RateLimit-Used": String(rateLimit.used),
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": resetTime.toISOString(),
+          },
+        },
       );
     }
 
@@ -119,10 +130,32 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Errore API audit:", error);
 
-    if (error instanceof Error && error.message.includes("429")) {
+    // Differenzia errori dal backend Python
+    if (error instanceof ApiError) {
+      if (error.status === 429) {
+        return NextResponse.json(
+          { error: "Troppe richieste al servizio di analisi. Riprova tra qualche secondo." },
+          { status: 429, headers: { "Retry-After": "10" } },
+        );
+      }
+      if (error.status >= 400 && error.status < 500) {
+        return NextResponse.json(
+          { error: "URL non raggiungibile o non valido. Verifica l'indirizzo e riprova." },
+          { status: 422 },
+        );
+      }
+      // 5xx o timeout dal backend
       return NextResponse.json(
-        { error: "Troppe richieste. Riprova tra qualche secondo." },
-        { status: 429 },
+        { error: "Il servizio di analisi non è al momento disponibile. Riprova tra qualche minuto." },
+        { status: 503, headers: { "Retry-After": "60" } },
+      );
+    }
+
+    // Errore di timeout (AbortError)
+    if (error instanceof Error && error.name === "AbortError") {
+      return NextResponse.json(
+        { error: "L'analisi ha impiegato troppo tempo. Il sito potrebbe essere lento. Riprova." },
+        { status: 504 },
       );
     }
 

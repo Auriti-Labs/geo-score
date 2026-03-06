@@ -10,7 +10,16 @@ const ContactSchema = z.object({
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const data = ContactSchema.parse(body);
+    const parsed = ContactSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? "Dati non validi" },
+        { status: 400 },
+      );
+    }
+
+    const data = parsed.data;
 
     // Invio email tramite Resend (se configurato)
     const resendKey = process.env.RESEND_API_KEY;
@@ -18,7 +27,7 @@ export async function POST(request: Request) {
       const { Resend } = await import("resend");
       const resend = new Resend(resendKey);
 
-      await resend.emails.send({
+      const { error: sendError } = await resend.emails.send({
         from:
           process.env.RESEND_FROM_EMAIL ?? "GEO Score <noreply@geoscore.dev>",
         to: "juancamilo.auriti@gmail.com",
@@ -26,16 +35,19 @@ export async function POST(request: Request) {
         text: `Nome: ${data.name}\nEmail: ${data.email}\n\nMessaggio:\n${data.message}`,
         replyTo: data.email,
       });
+
+      if (sendError) {
+        console.error("Errore invio email contatto:", sendError);
+        return NextResponse.json(
+          { error: "Errore nell'invio del messaggio. Riprova." },
+          { status: 502 },
+        );
+      }
     }
 
     return NextResponse.json({ success: true });
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Dati non validi", details: err.issues },
-        { status: 400 },
-      );
-    }
+  } catch (error) {
+    console.error("Errore API contatto:", error);
     return NextResponse.json(
       { error: "Errore interno del server" },
       { status: 500 },
