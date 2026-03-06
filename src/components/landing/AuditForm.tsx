@@ -49,29 +49,36 @@ export function AuditForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex w-full max-w-xl gap-2">
-      <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-        <Input
-          type="url"
-          placeholder="es. mioblog.it"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          className="pl-9"
-          disabled={loading}
-          aria-label="URL del sito da analizzare"
-        />
-      </div>
-      <Button type="submit" disabled={loading || !url.trim()} size="lg">
-        {loading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Analisi...
-          </>
-        ) : (
-          "Analizza"
-        )}
-      </Button>
-    </form>
+    <div className="flex w-full max-w-xl flex-col gap-2">
+      <form onSubmit={handleSubmit} className="flex w-full gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Input
+            type="url"
+            placeholder="es. mioblog.it"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            className="pl-9"
+            disabled={loading}
+            aria-label="URL del sito da analizzare"
+          />
+        </div>
+        <Button type="submit" disabled={loading || !url.trim()} size="lg">
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Analisi...
+            </>
+          ) : (
+            "Analizza"
+          )}
+        </Button>
+      </form>
+      {loading && (
+        <p className="text-center text-xs text-muted-foreground animate-in fade-in">
+          L&apos;analisi richiede circa 10 secondi...
+        </p>
+      )}
+    </div>
   );
 }

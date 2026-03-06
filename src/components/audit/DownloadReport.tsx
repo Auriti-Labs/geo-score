@@ -14,7 +14,7 @@ export function DownloadReport({ auditId }: DownloadReportProps) {
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setShowDialog(true)}>
+      <Button size="sm" onClick={() => setShowDialog(true)}>
         <Download className="mr-2 h-4 w-4" />
         Scarica report PDF
       </Button>

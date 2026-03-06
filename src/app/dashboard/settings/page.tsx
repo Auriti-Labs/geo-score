@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { PlanBadge } from "@/components/dashboard/PlanBadge";
+import { DeleteAccountButton } from "@/components/dashboard/DeleteAccountButton";
 import type { UserPlan } from "@/types/database";
 import Link from "next/link";
 
@@ -86,6 +87,18 @@ export default async function SettingsPage() {
             </a>
           </div>
         )}
+      </section>
+
+      {/* Zona pericolosa — GDPR Art. 17 */}
+      <section className="mb-8 rounded-lg border border-destructive/30 p-6">
+        <h2 className="mb-2 font-heading text-lg font-semibold text-destructive">
+          Zona pericolosa
+        </h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Eliminando il tuo account, tutti i dati personali, audit e abbonamenti
+          verranno cancellati in modo permanente e irreversibile.
+        </p>
+        <DeleteAccountButton />
       </section>
 
       {/* Torna alla dashboard */}

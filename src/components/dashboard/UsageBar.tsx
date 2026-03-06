@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { UserPlan } from "@/types/database";
 
 const PLAN_LIMITS: Record<UserPlan, number | null> = {
@@ -43,6 +44,14 @@ export function UsageBar({ plan, used }: UsageBarProps) {
           style={{ width: `${percentage}%` }}
         />
       </div>
+      {isNearLimit && plan === "free" && (
+        <Link
+          href="/pricing"
+          className="inline-block text-xs font-medium text-primary hover:underline"
+        >
+          Passa a Pro per 50 analisi/giorno →
+        </Link>
+      )}
     </div>
   );
 }
