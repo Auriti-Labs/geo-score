@@ -1,9 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+import React from "react";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { AuditRow } from "@/types/database";
-import { renderToBuffer } from "@react-pdf/renderer";
-import React from "react";
-import { ReportPdf } from "@/lib/pdf/report-template";
 import { getClientIp, hashIp, checkInMemoryRateLimit } from "@/lib/rate-limit";
 
 // Limite: 10 download per IP ogni 15 minuti
@@ -56,7 +54,12 @@ export async function GET(
       audit_id: id,
     });
 
-    // Genera PDF con timeout di 30s — cast necessario per compatibilità tipi @react-pdf/renderer
+    // Lazy load @react-pdf/renderer (~200KB) — caricato solo quando serve
+    const [{ renderToBuffer }, { ReportPdf }] = await Promise.all([
+      import("@react-pdf/renderer"),
+      import("@/lib/pdf/report-template"),
+    ]);
+
     const element = React.createElement(ReportPdf, {
       audit: audit as AuditRow,
     });

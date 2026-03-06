@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AuditForm } from "./AuditForm";
 import { ScanCounter } from "./ScanCounter";
 
@@ -20,7 +21,9 @@ export function HeroSection() {
         <p className="text-sm text-muted-foreground">
           Gratuito. Nessuna registrazione richiesta.
         </p>
-        <ScanCounter />
+        <Suspense fallback={null}>
+          <ScanCounter />
+        </Suspense>
       </div>
     </section>
   );

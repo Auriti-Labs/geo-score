@@ -1,24 +1,27 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import { BarChart3 } from "lucide-react";
+import { createServiceClient } from "@/lib/supabase/server";
 
-export function ScanCounter() {
-  const [count, setCount] = useState<number | null>(null);
+// Server component — fetcha direttamente da Supabase senza API call client-side
+export async function ScanCounter() {
+  let count = 0;
 
-  useEffect(() => {
-    fetch("/api/stats")
-      .then((res) => res.json())
-      .then((data) => setCount(data.totalAudits))
-      .catch(() => setCount(null));
-  }, []);
+  try {
+    const supabase = createServiceClient();
+    const { count: total } = await supabase
+      .from("audits")
+      .select("*", { count: "exact", head: true });
 
-  // Non mostrare nulla finché non abbiamo il dato o se è 0
-  if (count === null || count === 0) return null;
+    count = total ?? 0;
+  } catch {
+    // Fallback silenzioso — non mostrare nulla se errore
+    return null;
+  }
+
+  if (count === 0) return null;
 
   return (
     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-      <BarChart3 className="h-4 w-4" />
+      <BarChart3 className="h-4 w-4" aria-hidden="true" />
       <span>
         <strong className="text-foreground">
           {count.toLocaleString("it-IT")}
