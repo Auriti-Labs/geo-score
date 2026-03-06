@@ -38,68 +38,113 @@ export async function POST(request: Request) {
       const subscriptionId = session.subscription as string;
 
       if (userId && plan && subscriptionId) {
-        // Recupera dettagli abbonamento
-        const subResponse =
-          await stripe.subscriptions.retrieve(subscriptionId);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const sub = subResponse as any;
-
-        // Salva abbonamento
-        await supabase.from("subscriptions").upsert({
-          id: subscriptionId,
-          user_id: userId,
-          plan,
-          status: sub.status,
-          current_period_end: sub.current_period_end
-            ? new Date(sub.current_period_end * 1000).toISOString()
-            : null,
-          cancel_at_period_end: sub.cancel_at_period_end ?? false,
+        // Recupera dettagli abbonamento (expand items per current_period_end)
+        const sub = await stripe.subscriptions.retrieve(subscriptionId, {
+          expand: ["items.data"],
         });
+        // current_period_end è nel primo item (API clover+)
+        const periodEnd = sub.items.data[0]?.current_period_end;
 
-        // Aggiorna piano profilo
-        await supabase
+        // Salva abbonamento — verifica errore
+        const { error: upsertError } = await supabase
+          .from("subscriptions")
+          .upsert({
+            id: subscriptionId,
+            user_id: userId,
+            plan,
+            status: sub.status,
+            current_period_end: periodEnd
+              ? new Date(periodEnd * 1000).toISOString()
+              : null,
+            cancel_at_period_end: sub.cancel_at_period_end ?? false,
+          });
+
+        if (upsertError) {
+          console.error("Errore upsert subscription:", upsertError);
+          return NextResponse.json(
+            { error: "Errore salvataggio subscription" },
+            { status: 500 },
+          );
+        }
+
+        // Aggiorna piano profilo — verifica errore
+        const { error: profileError } = await supabase
           .from("profiles")
           .update({ plan })
           .eq("id", userId);
+
+        if (profileError) {
+          console.error("Errore update profilo:", profileError);
+          return NextResponse.json(
+            { error: "Errore aggiornamento profilo" },
+            { status: 500 },
+          );
+        }
       }
       break;
     }
 
     case "customer.subscription.updated":
     case "customer.subscription.deleted": {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const subscription = event.data.object as any;
-      const subscriptionId = subscription.id as string;
+      const subscription = event.data.object as Stripe.Subscription;
+      const subscriptionId = subscription.id;
 
-      // Aggiorna stato abbonamento
-      const newStatus = subscription.status as string;
+      // Aggiorna stato abbonamento — verifica errore
+      const newStatus = subscription.status;
       const isCanceled =
         newStatus === "canceled" || newStatus === "unpaid";
 
-      await supabase
+      // current_period_end è nel primo item (API clover+)
+      const itemPeriodEnd = subscription.items?.data?.[0]?.current_period_end;
+
+      const { error: subUpdateError } = await supabase
         .from("subscriptions")
         .update({
           status: newStatus,
-          current_period_end: subscription.current_period_end
-            ? new Date(subscription.current_period_end * 1000).toISOString()
+          current_period_end: itemPeriodEnd
+            ? new Date(itemPeriodEnd * 1000).toISOString()
             : null,
           cancel_at_period_end: subscription.cancel_at_period_end ?? false,
         })
         .eq("id", subscriptionId);
 
+      if (subUpdateError) {
+        console.error("Errore update subscription:", subUpdateError);
+        return NextResponse.json(
+          { error: "Errore aggiornamento subscription" },
+          { status: 500 },
+        );
+      }
+
       // Se cancellato, riporta a free
       if (isCanceled) {
-        const { data: subData } = await supabase
+        const { data: subData, error: selectError } = await supabase
           .from("subscriptions")
           .select("user_id")
           .eq("id", subscriptionId)
           .single();
 
+        if (selectError) {
+          console.error("Errore recupero user_id subscription:", selectError);
+          return NextResponse.json(
+            { error: "Errore recupero subscription" },
+            { status: 500 },
+          );
+        }
+
         if (subData) {
-          await supabase
+          const { error: downgradeError } = await supabase
             .from("profiles")
             .update({ plan: "free" })
             .eq("id", subData.user_id);
+
+          if (downgradeError) {
+            console.error("Errore downgrade a free:", downgradeError);
+            return NextResponse.json(
+              { error: "Errore downgrade piano" },
+              { status: 500 },
+            );
+          }
         }
       }
       break;

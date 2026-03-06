@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getStripe, getStripePriceId } from "@/lib/stripe";
+
+const CheckoutSchema = z.object({
+  plan: z.enum(["pro", "agency"]),
+  interval: z.enum(["month", "year"]),
+});
 
 export async function POST(request: Request) {
   try {
@@ -14,14 +20,13 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { plan, interval } = body as {
-      plan: "pro" | "agency";
-      interval: "month" | "year";
-    };
+    const parsed = CheckoutSchema.safeParse(body);
 
-    if (!["pro", "agency"].includes(plan) || !["month", "year"].includes(interval)) {
+    if (!parsed.success) {
       return NextResponse.json({ error: "Piano non valido" }, { status: 400 });
     }
+
+    const { plan, interval } = parsed.data;
 
     const stripe = getStripe();
     const priceId = getStripePriceId(plan, interval);

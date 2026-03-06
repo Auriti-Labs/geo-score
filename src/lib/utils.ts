@@ -25,8 +25,9 @@ export function truncateUrl(url: string, maxLength = 50): string {
 
 // Normalizza URL per dedup (lowercase, senza trailing /, senza www)
 export function normalizeUrl(url: string): string {
+  const trimmed = url.trim();
   try {
-    const parsed = new URL(url.toLowerCase());
+    const parsed = new URL(trimmed.toLowerCase());
     parsed.hostname = parsed.hostname.replace(/^www\./, "");
     // Rimuovi trailing slash dal pathname (tranne root)
     if (parsed.pathname.length > 1) {
@@ -34,6 +35,6 @@ export function normalizeUrl(url: string): string {
     }
     return parsed.toString().replace(/\/$/, "");
   } catch {
-    return url.toLowerCase().replace(/\/+$/, "");
+    return trimmed.toLowerCase().replace(/\/+$/, "");
   }
 }

@@ -3,7 +3,7 @@
 
 import type { AuditResult } from "@/types/audit";
 
-const TIMEOUT_MS = 30_000;
+const TIMEOUT_MS = parseInt(process.env.API_TIMEOUT_MS ?? "30000", 10);
 const MAX_RETRIES = 2;
 
 class ApiError extends Error {
@@ -64,6 +64,11 @@ export async function runAudit(url: string): Promise<AuditResult> {
 
       // Ultimo tentativo: propaga l'errore
       if (attempt === MAX_RETRIES) break;
+
+      // Exponential backoff con jitter prima del prossimo tentativo
+      const backoffMs = Math.min(1000 * Math.pow(2, attempt), 8000);
+      const jitter = Math.random() * 500;
+      await new Promise((resolve) => setTimeout(resolve, backoffMs + jitter));
     }
   }
 

@@ -32,12 +32,18 @@ export async function GET(
       audit_id: id,
     });
 
-    // Genera PDF — cast necessario per compatibilità tipi @react-pdf/renderer
+    // Genera PDF con timeout di 30s — cast necessario per compatibilità tipi @react-pdf/renderer
     const element = React.createElement(ReportPdf, {
       audit: audit as AuditRow,
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pdfBuffer = await renderToBuffer(element as any);
+    const PDF_TIMEOUT_MS = 30_000;
+    const pdfBuffer = await Promise.race([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      renderToBuffer(element as any),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout generazione PDF")), PDF_TIMEOUT_MS),
+      ),
+    ]);
     const filename = `geo-score-report-${audit.score}.pdf`;
 
     return new NextResponse(new Uint8Array(pdfBuffer), {

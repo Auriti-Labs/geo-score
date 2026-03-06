@@ -10,14 +10,15 @@ const requiredServerVars = [
 
 export function validateEnv() {
   // Skip validazione durante il build (next build non ha env vars runtime)
-  if (process.env.NODE_ENV === "production" && !process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  // Se siamo in build-time, nessuna NEXT_PUBLIC_* è disponibile
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PHASE === "phase-production-build") {
     return;
   }
 
   const missing = requiredServerVars.filter((key) => !process.env[key]);
   if (missing.length > 0) {
-    console.warn(
-      `⚠ Variabili ambiente mancanti: ${missing.join(", ")}. Controlla .env.local`,
+    throw new Error(
+      `Variabili ambiente mancanti: ${missing.join(", ")}. Controlla .env.local`,
     );
   }
 }

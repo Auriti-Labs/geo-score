@@ -47,19 +47,26 @@ export async function POST(request: NextRequest) {
     await supabase.from("usage_events").insert({
       event_type: "email_collected",
       audit_id,
-      metadata: { email_hash: email.split("@")[1] },
+      metadata: { source: "report_download" },
     });
 
     // Invio email con link al report PDF via Resend
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://geoscore.dev";
     const reportUrl = `${siteUrl}/api/report/${audit_id}`;
 
-    await sendReportEmail({
+    const emailSent = await sendReportEmail({
       to: email,
       url: audit.url,
       score: audit.score,
       reportUrl,
     });
+
+    if (!emailSent) {
+      return NextResponse.json(
+        { error: "Errore nell'invio dell'email. Riprova." },
+        { status: 502 },
+      );
+    }
 
     return NextResponse.json({
       success: true,

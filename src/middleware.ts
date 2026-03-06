@@ -1,8 +1,15 @@
-// Middleware Next.js — refresh sessione Supabase (minimal per MVP)
+// Middleware Next.js — refresh sessione Supabase + skip per API routes
 import { updateSession } from "@/lib/supabase/middleware";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Skip session refresh per API routes e webhook (non servono cookie auth)
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
   return await updateSession(request);
 }
 
