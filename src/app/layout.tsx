@@ -65,6 +65,10 @@ const jsonLd = JSON.stringify({
     "@type": "Organization",
     name: "Auriti Labs",
     url: "https://github.com/Auriti-Labs",
+    logo: `${SITE_URL}/logo.png`,
+    sameAs: [
+      "https://github.com/Auriti-Labs",
+    ],
   },
 });
 

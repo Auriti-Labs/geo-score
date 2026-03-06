@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ScoreBand } from "@/types/audit";
 import { SCORE_BANDS } from "@/lib/constants";
+import { formatDate, truncateUrl } from "@/lib/utils";
 
 interface AuditSummary {
   id: string;
@@ -8,21 +9,6 @@ interface AuditSummary {
   score: number;
   band: ScoreBand;
   created_at: string;
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("it-IT", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function truncateUrl(url: string, max = 50): string {
-  if (url.length <= max) return url;
-  return url.slice(0, max) + "…";
 }
 
 export function AuditHistoryTable({ audits }: { audits: AuditSummary[] }) {
