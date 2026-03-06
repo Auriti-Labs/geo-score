@@ -21,9 +21,18 @@ export function ScoreGauge({ score, band, size = 180 }: ScoreGaugeProps) {
   const color = SCORE_BANDS[band].color;
 
   useEffect(() => {
+    // Rispetta prefers-reduced-motion
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReduced) {
+      // Usa rAF per evitare setState sincrono nell'effect
+      const id = requestAnimationFrame(() => setAnimatedScore(score));
+      return () => cancelAnimationFrame(id);
+    }
+
     // Animazione del punteggio da 0 al valore finale
     const duration = 1000;
     const start = performance.now();
+    let rafId: number;
 
     function animate(now: number) {
       const elapsed = now - start;
@@ -33,16 +42,22 @@ export function ScoreGauge({ score, band, size = 180 }: ScoreGaugeProps) {
       setAnimatedScore(Math.round(eased * score));
 
       if (fraction < 1) {
-        requestAnimationFrame(animate);
+        rafId = requestAnimationFrame(animate);
       }
     }
 
-    requestAnimationFrame(animate);
+    rafId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafId);
   }, [score]);
 
   return (
-    <div className="relative inline-flex items-center justify-center">
-      <svg width={size} height={size} className="-rotate-90">
+    <div
+      className="relative inline-flex items-center justify-center"
+      role="img"
+      aria-label={`GEO Score: ${score} su 100`}
+    >
+      <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
+        <title>GEO Score: {score} su 100</title>
         {/* Cerchio sfondo */}
         <circle
           cx={size / 2}

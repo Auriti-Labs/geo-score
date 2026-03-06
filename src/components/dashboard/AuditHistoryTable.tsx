@@ -42,10 +42,10 @@ export function AuditHistoryTable({ audits }: { audits: AuditSummary[] }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-muted/50">
-            <th className="px-4 py-3 text-left font-medium">URL</th>
-            <th className="px-4 py-3 text-center font-medium">Score</th>
-            <th className="px-4 py-3 text-center font-medium">Band</th>
-            <th className="px-4 py-3 text-right font-medium">Data</th>
+            <th scope="col" className="px-4 py-3 text-left font-medium">URL</th>
+            <th scope="col" className="px-4 py-3 text-center font-medium">Score</th>
+            <th scope="col" className="px-4 py-3 text-center font-medium">Band</th>
+            <th scope="col" className="px-4 py-3 text-right font-medium">Data</th>
           </tr>
         </thead>
         <tbody>

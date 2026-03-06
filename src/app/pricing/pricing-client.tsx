@@ -63,10 +63,12 @@ export function PricingToggle() {
         </span>
         <button
           onClick={() => setIsYearly(!isYearly)}
-          className={`relative h-6 w-11 rounded-full transition-colors ${
+          className={`relative h-7 w-12 rounded-full transition-colors ${
             isYearly ? "bg-primary" : "bg-muted"
           }`}
-          aria-label="Toggle mensile/annuale"
+          role="switch"
+          aria-checked={isYearly}
+          aria-label="Fatturazione annuale"
         >
           <span
             className={`absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform ${

@@ -80,8 +80,9 @@ export function EmailGateDialog({
             required
             aria-label="Indirizzo email"
           />
-          <label className="flex items-start gap-2 text-xs text-muted-foreground">
+          <label htmlFor="email-consent" className="flex items-start gap-2 text-xs text-muted-foreground">
             <input
+              id="email-consent"
               type="checkbox"
               checked={consent}
               onChange={(e) => setConsent(e.target.checked)}

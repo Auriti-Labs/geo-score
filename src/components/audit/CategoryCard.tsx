@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useId } from "react";
 import { ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ interface CategoryCardProps {
 export function CategoryCard({ category, children }: CategoryCardProps) {
   const [open, setOpen] = useState(false);
   const info = CATEGORIES[category];
+  const contentId = useId();
 
   return (
     <Card>
@@ -23,6 +24,7 @@ export function CategoryCard({ category, children }: CategoryCardProps) {
         onClick={() => setOpen(!open)}
         role="button"
         aria-expanded={open}
+        aria-controls={contentId}
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -37,6 +39,7 @@ export function CategoryCard({ category, children }: CategoryCardProps) {
             <p className="text-sm text-muted-foreground">{info.description}</p>
           </div>
           <ChevronDown
+            aria-hidden="true"
             className={cn(
               "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
               open && "rotate-180",
@@ -44,7 +47,7 @@ export function CategoryCard({ category, children }: CategoryCardProps) {
           />
         </div>
       </CardHeader>
-      {open && <CardContent>{children}</CardContent>}
+      {open && <CardContent id={contentId}>{children}</CardContent>}
     </Card>
   );
 }
